@@ -1,0 +1,79 @@
+#include <LiquidCrystal.h>
+
+// LCD Pin Mapping
+#define RS  PIN_PB0
+#define EN  PIN_PD7
+#define D4  PIN_PD6
+#define D5  PIN_PD5
+#define D6  PIN_PB7
+#define D7  PIN_PB6  // Make sure D7 doesn't conflict with anything else
+
+// Ultrasonic Sensor Pins
+#define Trig_Left   PIN_PB2
+#define Echo_Left   PIN_PB1
+#define Trig_Right  PIN_PC0
+#define Echo_Right  PIN_PC1
+#define Trig_Up     PIN_PC3
+#define Echo_Up     PIN_PC2
+#define Trig_Down   PIN_PC5
+#define Echo_Down   PIN_PC4
+#define Trig_Front  PIN_PD0
+#define Echo_Front  PIN_PD1
+
+LiquidCrystal lcd(RS, EN, D4, D5, D6, D7);
+char buf[17];
+
+void setup() {
+  lcd.begin(16, 2);
+  lcd.print("Room Volume:");
+  delay(2000);
+  lcd.clear();
+
+  pinMode(Trig_Left, OUTPUT);  pinMode(Echo_Left, INPUT);
+  pinMode(Trig_Right, OUTPUT); pinMode(Echo_Right, INPUT);
+  pinMode(Trig_Up, OUTPUT);    pinMode(Echo_Up, INPUT);
+  pinMode(Trig_Down, OUTPUT);  pinMode(Echo_Down, INPUT);
+  pinMode(Trig_Front, OUTPUT); pinMode(Echo_Front, INPUT);
+}
+
+void loop() {
+  int L = getDistance(Trig_Left, Echo_Left);     // cm
+  int R = getDistance(Trig_Right, Echo_Right);   // cm
+  int U = getDistance(Trig_Up, Echo_Up);         // cm
+  int D = getDistance(Trig_Down, Echo_Down);     // cm
+  int F = getDistance(Trig_Front, Echo_Front);   // cm
+
+  // Dimensions
+  int Width  = L + R;
+  int Length = U + D;
+  int Height = F;
+
+  // Calculate Volume in liters
+  long volume_cm3 = (long)Width * Length * Height;
+  int volume_liters = volume_cm3 / 1000;
+
+  // Display
+  lcd.setCursor(0, 0);
+  sprintf(buf, "L%3d R%3d U%3d", L, R, U);
+  lcd.print(buf);
+
+  lcd.setCursor(0, 1);
+  sprintf(buf, "D%3d F%3d C%4d", D, F, volume_liters);
+  lcd.print(buf);
+
+  delay(1000);
+}
+
+int getDistance(int trigPin, int echoPin) {
+  digitalWrite(trigPin, LOW);
+  delayMicroseconds(2);
+  digitalWrite(trigPin, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trigPin, LOW);
+
+  long duration = pulseIn(echoPin, HIGH, 25000); // 25ms timeout
+  float distance = duration * 0.034 / 2;
+
+  if (distance == 0 || distance > 400) return 0; // Invalid reading
+  return (int)distance;
+}
